@@ -539,6 +539,77 @@
     <script src="script.js"></script>
     <script src="slider.js"></script>
     <script src="index-dynamic.js"></script>
+    <script type="module">
+        // Firebase (v12) CDN + Firestore read for upcoming events
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js';
+        import { getFirestore, collection, query, where, orderBy, limit, getDocs } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOoWDdtnWL5NrXd__XNkTB0NTjR1R0nMw",
+            authDomain: "acm-backend-22e90.firebaseapp.com",
+            projectId: "acm-backend-22e90",
+            storageBucket: "acm-backend-22e90.firebasestorage.app",
+            messagingSenderId: "975303596959",
+            appId: "1:975303596959:web:56622d171e34ed6d683baa"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Override the legacy loader to use Firestore
+        window.loadUpcomingEvents = async function loadUpcomingEvents() {
+            try {
+                const eventsGrid = document.querySelector('.events-preview .events-grid');
+                if (!eventsGrid) return;
+
+                const eventsRef = collection(db, 'events');
+                const q = query(
+                    eventsRef,
+                    where('status', '==', 'upcoming'),
+                    orderBy('event_date', 'asc'),
+                    limit(6)
+                );
+                const snapshot = await getDocs(q);
+                const events = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                if (events.length === 0) return;
+
+                // Remove placeholder if present
+                const placeholder = eventsGrid.querySelector('h3');
+                if (placeholder) placeholder.remove();
+
+                events.forEach(event => {
+                    const cardHtml = (typeof window.createHomepageEventCard === 'function')
+                        ? window.createHomepageEventCard(event)
+                        : `
+                            <div class="event-card">
+                                <div class="event-image">
+                                    <img src="${event.image_path || './images/events/default.jpg'}" alt="${event.title}">
+                                    <div class="event-category">${(event.category || 'Event')}</div>
+                                </div>
+                                <div class="event-content">
+                                    <div class="event-date">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        ${new Date(event.event_date).toLocaleDateString()}
+                                    </div>
+                                    <h3>${event.title || 'Event'}</h3>
+                                    <p>${event.event_short_description || event.short_description || ''}</p>
+                                </div>
+                            </div>`;
+                    eventsGrid.insertAdjacentHTML('beforeend', cardHtml);
+                });
+            } catch (err) {
+                console.error('Firestore events load error:', err);
+            }
+        };
+
+        // Ensure our Firestore-based loader runs on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => window.loadUpcomingEvents());
+        } else {
+            window.loadUpcomingEvents();
+        }
+    </script>
 </body>
 
 </html>
