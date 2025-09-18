@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Leaderboard Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px;
+    }
+
+    .container {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      width: 95%;
+      max-width: 1000px;
+    }
+
+    h2,
+    h3 {
+      text-align: center;
+    }
+
+    input,
+    select,
+    button {
+      padding: 8px;
+      margin: 6px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    input,
+    select {
+      background: #334155;
+      color: #fff;
+    }
+
+    button {
+      background: #3b82f6;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    #logoutBtn {
+      background: #ef4444;
+      display: none;
+    }
+
+    #logoutBtn:hover {
+      background: #dc2626;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      background: #334155;
+      color: #bbb;
+    }
+
+    .tab-btn.active {
+      background: #475569;
+      color: #fff;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 15px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #475569;
+      text-align: left;
+    }
+
+    a.name-link {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+
+    a.name-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Admin Dashboard</h2>
+
+    <!-- Login -->
+    <div id="loginForm" style="display: grid; justify-items: center;">
+      <input id="email" type="email" placeholder="Admin Email">
+      <input id="password" type="password" placeholder="Password">
+      <button id="loginBtn">Login</button>
+    </div>
+    <button id="logoutBtn">Logout</button>
+
+    <!-- Dashboard -->
+    <div id="dashboard" style="display:none;">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('inter')">Inter College</button>
+        <button class="tab-btn" onclick="switchTab('inhouse')">Inhouse</button>
+      </div>
+
+      <!-- Search -->
+      <input id="searchBar" type="text" placeholder="Search by name..." oninput="renderTable(currentTab)">
+
+      <!-- Add Form -->
+      <h3>Add / Update Person</h3>
+      <input id="name" placeholder="Name">
+      <input id="extra" placeholder="College/Branch">
+      <input id="points" type="number" placeholder="Points">
+      <input id="link" placeholder="Optional Link">
+      <button id="addBtn">Add / Update</button>
+
+      <!-- Table -->
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>College/Branch</th>
+            <th>Points</th>
+            <th>Adjust Points</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let currentTab = "inter";
+    let dataCache = { inter: [], inhouse: [] };
+
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const dashboard = document.getElementById("dashboard");
+    const loginForm = document.getElementById("loginForm");
+
+    // Switch Tabs
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+      event.target.classList.add("active");
+      renderTable(tab);
+    }
+
+    // Login
+    loginBtn.addEventListener("click", () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+          loginForm.style.display = "none";
+          dashboard.style.display = "block";
+          logoutBtn.style.display = "block";
+          loadData("inter");
+          loadData("inhouse");
+        })
+        .catch(err => alert("Login failed: " + err.message));
+    });
+
+    // Logout
+    logoutBtn.addEventListener("click", () => {
+      auth.signOut().then(() => {
+        loginForm.style.display = "block";
+        dashboard.style.display = "none";
+        logoutBtn.style.display = "none";
+      });
+    });
+
+    // Load data from Firestore
+    function loadData(type) {
+      db.collection(type).onSnapshot(snapshot => {
+        dataCache[type] = [];
+        snapshot.forEach(doc => {
+          dataCache[type].push({ id: doc.id, ...doc.data() });
+        });
+        if (type === currentTab) renderTable(type);
+      });
+    }
+
+    // Render Table
+    function renderTable(type) {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+      const search = document.getElementById("searchBar").value.toLowerCase();
+
+      dataCache[type]
+        .filter(item => item.name.toLowerCase().includes(search))
+        .forEach(item => {
+          tbody.innerHTML += `
+            <tr>
+              <td>
+                ${item.link ? `<a href="${item.link}" target="_blank" class="name-link">${item.name}</a>` : item.name}
+              </td>
+              <td>${item.college || item.branch || "-"}</td>
+              <td>${item.points}</td>
+              <td>
+                <input type="text" id="adj-${item.id}" placeholder="+10 / -10" style="width:70px;">
+                <button onclick="adjustPoints('${type}','${item.id}')">Apply</button>
+              </td>
+              <td>
+                <button onclick="editPerson('${type}','${item.id}')">Edit</button>
+                <button onclick="deletePerson('${type}','${item.id}')">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+    }
+
+    // Add / Update Person
+    document.getElementById("addBtn").addEventListener("click", async () => {
+      const name = document.getElementById("name").value;
+      const extra = document.getElementById("extra").value;
+      const points = parseInt(document.getElementById("points").value);
+      const link = document.getElementById("link").value || null;
+
+      if (!name || isNaN(points)) return alert("Fill all fields");
+
+      await db.collection(currentTab).doc(name).set({
+        name,
+        points,
+        college: currentTab === "inter" ? extra : null,
+        branch: currentTab === "inhouse" ? extra : null,
+        link
+      });
+      alert("Saved!");
+    });
+
+    // Edit Person
+    window.editPerson = (type, id) => {
+      const person = dataCache[type].find(p => p.id === id);
+      if (!person) return;
+      document.getElementById("name").value = person.name;
+      document.getElementById("extra").value = person.college || person.branch || "";
+      document.getElementById("points").value = person.points;
+      document.getElementById("link").value = person.link || "";
+      currentTab = type;
+    };
+
+    // Delete Person
+    window.deletePerson = async (type, id) => {
+      if (confirm("Delete this entry?")) {
+        await db.collection(type).doc(id).delete();
+      }
+    };
+
+    // Adjust Points
+    window.adjustPoints = async (type, id) => {
+      const input = document.getElementById(`adj-${id}`).value;
+      if (!input) return;
+      const person = dataCache[type].find(p => p.id === id);
+      let points = person.points;
+      if (input.startsWith("+")) {
+        points += parseInt(input.substring(1));
+      } else if (input.startsWith("-")) {
+        points -= parseInt(input.substring(1));
+      } else {
+        return alert("Invalid format! Use +num or -num");
+      }
+      await db.collection(type).doc(id).update({ points });
+      document.getElementById(`adj-${id}`).value = "";
+    };
+  </script>
+</body>
+
+</html>

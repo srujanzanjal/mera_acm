@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+ 
+      <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase.js"></script>
+    <!-- <link rel="stylesheet" href="navigation.css"> -->
+    <link rel="stylesheet" href="../header.css">
+    <link rel="stylesheet href="style.css">
+<link rel="stylesheet" href="styles.css">
+
+<style>
+    .leaderboard-container {
+      width: 100%;
+      max-width: 800px;
+      background: #11162b;
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      background: #1c2440;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      background: transparent;
+      color: #bbb;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      background: #232c4d;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 14px 18px;
+    }
+
+    th {
+      background: #1f2a4d;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    tr:nth-child(even) {
+      background: #141a33;
+    }
+
+    tr:nth-child(odd) {
+      background: #10152b;
+    }
+
+    .rank {
+      font-weight: bold;
+    }
+
+    .gold {
+      color: gold;
+    }
+    .silver {
+      color: silver;
+    }
+    .bronze {
+      color: #cd7f32;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+
+
+     a.name-link {
+      color: #ffffff;
+      text-decoration: none;
+
+    }
+    a.name-link:hover {
+      text-decoration: underline;
+      color: #60a5fa;
+    }
+
+
+
+
+    @media (max-width: 800px) and (min-width:310px){
+
+      .leaderboard-container {
+    
+    margin: 0 23px;
+}
+    }
+</style>
+</head>
+
+<body>
+
+    <header class="College_Mission_Info">
+        <div onclick="window.location.href = 'https://stvincentngp.edu.in/'" class="College_Logo">
+            <img src="../images/svpcet-logo.png" alt="College_Logo" />
+        </div>
+        <div class="College_NamePlate">
+
+            <p>
+                <b class="svp">ST. VINCENT PALLOTTI</b> <br>
+                <b class="cet">COLLEGE ENGINEERING AND TECHNOLOGY, NAGPUR</b>
+                <br /><span>An Autonomous Institute</span>
+            </p>
+            <p class="h1"> Department of Computer Engineering </p>
+             <p class="h1">ACM CE Student Chapter</p>
+
+        </div>
+        <div onclick="window.location.href = 'https://www.acm.org/'" class="acm_Logo">
+            <img src="../images/svpcet-acm-logo.png" alt="acm_logo" />
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <!-- <div id="loader" class="loader">
+        <div class="loader-content">
+            <div class="loader-spinner">
+                <div class="spinner-outer"></div>
+                <div class="spinner-inner"></div>
+            </div>
+            <div class="loader-logo">
+                <img src="images/svpcet-acm-logo.png" alt="ACM SVPCET Logo" style="width: 60px; height: 60px; object-fit: contain;">
+            </div>
+            <h2 class="loader-title">ACM SVPCET</h2>
+            <div class="loader-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+    </div> -->
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <!-- <div class="nav-brand">
+                <div class="brand-icon">
+                    <img src="images/svpcet-acm-logo.png" alt="ACM SVPCET Logo" style="width: 40px; height: 40px; object-fit: contain;">
+                </div>
+                <div class="brand-text">
+                    <h1>ACM SVPCET</h1>
+                    <p>Student Chapter</p>
+                </div>
+            </div> -->
+
+            <div class="nav-menu" id="nav-menu">
+                <a href="../#home" class="nav-link">Home</a>
+                <a href="../#about" class="nav-link">About</a>
+                <!-- <a href="#domains" class="nav-link">Domains</a> -->
+                <a href="../events.html" class="nav-link">Events</a>
+                <a href="../team.html" class="nav-link">Team</a>
+                <a href="../contact.html" class="nav-link">Contact</a>
+                <a href="../leaderboard/leaderboard.html" class="nav-link">Leaderboard</a>
+                <button onclick="window.location.href='../c-form.html'" class="btn btn-primary">Join Us</button>
+            </div>
+
+            <div class="nav-toggle" id="nav-toggle">
+                <span></span>   
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+  
+    <section style="display: flex; justify-content: center; color: white; margin-top: 3rem; margin-bottom: 3rem;">
+
+         <div class="leaderboard-container">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('inhouse')">Department</button>
+      <button class="tab-btn" onclick="switchTab('inter')">Inter College</button>
+      
+    </div>
+
+
+    
+    <!-- Inhouse -->
+    <table id="inhouse" class="leaderboard hidden">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Branch</th>
+          <th>Points</th>
+        </tr>
+      </thead>
+      <tbody id="inhouse-body"></tbody>
+    </table>
+
+    <!-- Inter College -->
+    <table id="inter" class="leaderboard">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>College</th>
+          <th>Points</th>
+        </tr>
+      </thead>
+      <tbody id="inter-body"></tbody>
+    </table>
+
+  </div>
+
+
+
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-brand">
+                        <div class="brand-icon">
+                            <img src="../images/svpcet-acm-logo.png" alt="ACM SVPCET Logo"
+                                style="width: 40px; height: 40px; object-fit: contain;">
+                        </div>
+                        <div class="brand-text">
+                            <h3>ACM SVPCET</h3>
+                            <p>Student Chapter</p>
+                        </div>
+                    </div>
+                    <p class="footer-description">
+                        Empowering future tech leaders through innovation, collaboration, and excellence.
+                    </p>
+                    <button onclick="window.location.href='c-form.html'" class="btn btn-primary">Join Us Today</button>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="index.html#domains">Domains</a></li>
+                        <li><a href="events.html">Events</a></li>
+                        <li><a href="team.html">Team</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Domains</h4>
+                    <ul class="footer-links">
+                        <li>Technical</li>
+                        <li>Competitive Programming</li>
+                        <li>Web Development</li>
+                        <li>Management</li>
+                        <li>Creative</li>
+                        <li>Publicity</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <p>SVPCET, Gavasi Manapur, Wardha Road, Nagpur - 441108</p>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <p>acm@svpcet.ac.in</p>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-phone"></i>
+                            <p>+91 712 123 4567</p>
+                        </div>
+                        <div class="contact-item">
+                            <button onclick="window.location.href='../dev-team/dev.html'" class="btn btn-primary">Developer Team</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 SVPCET ACM Student Chapter. All Rights Reserved. | Designed with ❤️ by ACM Team</p>
+            </div>
+        </div>
+    </footer>
+
+  <script>
+function switchTab(tab) {
+      document.querySelectorAll(".leaderboard").forEach(table => {
+        table.classList.add("hidden");
+      });
+      document.getElementById(tab).classList.remove("hidden");
+
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.remove("active");
+      });
+      event.target.classList.add("active");
+    }
+
+    // Render Leaderboard
+    function renderLeaderboard(type, tbodyId) {
+      db.collection(type)
+        .orderBy("points", "desc")
+        .limit(10)
+        .onSnapshot(snapshot => {
+          const tbody = document.getElementById(tbodyId);
+          tbody.innerHTML = "";
+          let rank = 1;
+          let prevPoints = null;
+          snapshot.forEach((doc, idx) => {
+            const data = doc.data();
+            if (prevPoints !== null && data.points !== prevPoints) {
+              rank++;
+            }
+            prevPoints = data.points;
+
+            let medal = "";
+            if (rank === 1) medal = '<i class="fa-solid fa-medal gold"></i>';
+            else if (rank === 2) medal = '<i class="fa-solid fa-medal silver"></i>';
+            else if (rank === 3) medal = '<i class="fa-solid fa-medal bronze"></i>';
+
+            const nameCell = data.link 
+              ? `<a href="${data.link}" target="_blank" class="name-link">${data.name}</a>`
+              : data.name;
+
+            tbody.innerHTML += `
+              <tr>
+                <td class="rank">${medal} ${rank}</td>
+                <td>${nameCell}</td>
+                <td>${data.college || data.branch || "-"}</td>
+                <td>${data.points}</td>
+              </tr>`;
+          });
+        });
+    }
+
+    renderLeaderboard("inter", "inter-body");
+    renderLeaderboard("inhouse", "inhouse-body");
+  </script>
+</body>
+
+</html>
